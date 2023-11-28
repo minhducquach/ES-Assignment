@@ -154,17 +154,16 @@ void handleUART1(struct params* taskParams){
 			}
 			esp_mqtt_client_register_event(mqtt_client[0], ESP_EVENT_ANY_ID, mqtt_event_handler, (void*) taskParams);
 			uint8_t* response = (uint8_t*) malloc(8);
-			responsePackage(id, RESPONSE, response);
+			responsePackage(id, getType(UART_TAG, taskParams->data), response);
 			sendData_UART1(UART_TAG, response);
 		}
-		vTaskDelay(pdMS_TO_TICKS(60000));
 	}
 }
 
 void handleUART2(struct params* taskParams){
 	while (1){
 		int flag = 0;
-		receiveData_UART1(UART_TAG, taskParams->data, &flag);
+		receiveData_UART2(UART_TAG, taskParams->data, &flag);
 //		flag = 1;
 		if (flag == 1){
 			uint8_t id = (uint8_t) taskParams->data[1];
@@ -175,10 +174,9 @@ void handleUART2(struct params* taskParams){
 			}
 			esp_mqtt_client_register_event(mqtt_client[1], ESP_EVENT_ANY_ID, mqtt_event_handler, (void*) taskParams);
 			uint8_t* response = (uint8_t*) malloc(8);
-			responsePackage(id, RESPONSE, response);
-			sendData_UART1(UART_TAG, response);
+			responsePackage(id, getType(UART_TAG, taskParams->data), response);
+			sendData_UART2(UART_TAG, response);
 		}
-		vTaskDelay(pdMS_TO_TICKS(60000));
 	}
 }
 
@@ -196,10 +194,10 @@ void app_main(void)
     while (wifi_init_sta() != ESP_OK){
     	continue;
     }
-    struct params* taskParams_1 = malloc(sizeof(struct params));
+//    struct params* taskParams_1 = malloc(sizeof(struct params));
 //    dataPackage(1, 50, taskParams_1->data);
     struct params* taskParams_2 = malloc(sizeof(struct params));
 //    dataPackage(2, 60, taskParams_2->data);
-	xTaskCreate(&handleUART1, "Receive UART Device 1", 4096, (void*) taskParams_1, 1, &taskHandler1);
+//	xTaskCreate(&handleUART1, "Receive UART Device 1", 4096, (void*) taskParams_1, 1, &taskHandler1);
 	xTaskCreate(&handleUART2, "Receive UART Device 2", 4096, (void*) taskParams_2, 1, &taskHandler2);
 }
