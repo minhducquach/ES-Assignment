@@ -3,5 +3,6 @@ idf_component_register(SRCS "thingsboard.c"
                     REQUIRES esp_http_client
                     REQUIRES mqtt
                     REQUIRES data_package
-                    REQUIRES envi)
+                    REQUIRES envi
+                    REQUIRES aes)
 

@@ -17,7 +17,7 @@
 #include "freertos/queue.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
-//#include "esp_event.h"
+
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_netif.h"
@@ -33,6 +33,7 @@
 #include "data_package.h"
 #include "uart.h"
 #include "thingsboard.h"
+#include "aes.h"
 
 #include "../components/envi/include/env.h"
 
@@ -46,12 +47,10 @@ static EventGroupHandle_t s_wifi_event_group;
 #define WIFI_FAIL_BIT      BIT1
 
 static const char *WIFI_TAG = "wifi station";
-//static const char *MQTT_TAG = "MQTT_TCP";
 extern const char *UART_TAG;
 
 static int s_retry_num = 0;
 extern esp_mqtt_client_handle_t mqtt_client[2];
-//extern char* response;
 
 int trackMQTT[2] = {0, 0};
 
@@ -144,17 +143,17 @@ esp_err_t wifi_init_sta(void)
 void handleUART1(struct params* taskParams){
 	while (1){
 		int flag = 0;
-//		receiveData_UART1(UART_TAG, taskParams->data, &flag);
-		flag = 1;
+		receiveData_UART1(UART_TAG, taskParams->data, &flag);
+//		flag = 1;
 		if (flag == 1){
-			int id = (int) taskParams->data[1];
+			uint8_t id = (uint8_t) taskParams->data[1];
 			if (!trackMQTT[0]){
 				create_thingsboard_device(id);
 				trackMQTT[0] = 1;
 				mqtt_app_start(id);
 			}
 			esp_mqtt_client_register_event(mqtt_client[0], ESP_EVENT_ANY_ID, mqtt_event_handler, (void*) taskParams);
-			char* response = (char*) malloc(8);
+			uint8_t* response = (uint8_t*) malloc(8);
 			responsePackage(id, RESPONSE, response);
 			sendData_UART1(UART_TAG, response);
 		}
@@ -165,18 +164,17 @@ void handleUART1(struct params* taskParams){
 void handleUART2(struct params* taskParams){
 	while (1){
 		int flag = 0;
-//		receiveData_UART1(UART_TAG, taskParams->data, &flag);
-		flag = 1;
+		receiveData_UART1(UART_TAG, taskParams->data, &flag);
+//		flag = 1;
 		if (flag == 1){
-			int id = (int) taskParams->data[1];
+			uint8_t id = (uint8_t) taskParams->data[1];
 			if (!trackMQTT[1]){
-				thingsboard_login();
-//				create_thingsboard_device(id);
+				create_thingsboard_device(id);
 				mqtt_app_start(id);
 				trackMQTT[1] = 1;
 			}
 			esp_mqtt_client_register_event(mqtt_client[1], ESP_EVENT_ANY_ID, mqtt_event_handler, (void*) taskParams);
-			char* response = (char*) malloc(8);
+			uint8_t* response = (uint8_t*) malloc(8);
 			responsePackage(id, RESPONSE, response);
 			sendData_UART1(UART_TAG, response);
 		}
@@ -198,10 +196,10 @@ void app_main(void)
     while (wifi_init_sta() != ESP_OK){
     	continue;
     }
-//    struct params* taskParams_1 = malloc(sizeof(struct params));
+    struct params* taskParams_1 = malloc(sizeof(struct params));
 //    dataPackage(1, 50, taskParams_1->data);
     struct params* taskParams_2 = malloc(sizeof(struct params));
-    dataPackage(2, 60, taskParams_2->data);
-//	xTaskCreate(&handleUART1, "Receive UART Device 1", 4096, (void*) taskParams_1, 1, &taskHandler1);
+//    dataPackage(2, 60, taskParams_2->data);
+	xTaskCreate(&handleUART1, "Receive UART Device 1", 4096, (void*) taskParams_1, 1, &taskHandler1);
 	xTaskCreate(&handleUART2, "Receive UART Device 2", 4096, (void*) taskParams_2, 1, &taskHandler2);
 }

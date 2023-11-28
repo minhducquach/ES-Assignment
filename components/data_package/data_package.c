@@ -6,14 +6,7 @@
 #include "esp_log.h"
 #include "data_package.h"
 
-void printData (char *data) {
-	printf("0x");
-	for (int i = 0; i < 8; i++)
-		printf("%02X", (unsigned char)data[i]);
-	printf("\n");
-}
-
-int checkSum(char *data) {
+int checkSum(uint8_t data[]) {
 	uint16_t check_sum = (data[5] << 8) + data[6];
 	uint16_t sum = data[1];
 	for (int i = 2; i < 5; i++)
@@ -23,7 +16,7 @@ int checkSum(char *data) {
 	return 0;
 }
 
-void heartbeatPackage(uint8_t ID, int status, int floor, int trash, int signal, char* data) {
+void heartbeatPackage(uint8_t ID, int status, int floor, int trash, int signal, uint8_t data[]) {
 	data[0] = 0x0A;
 	data[7] = 0x0B;
 	data[1] = ID;
@@ -39,7 +32,7 @@ void heartbeatPackage(uint8_t ID, int status, int floor, int trash, int signal, 
 	data[6] = check_sum;
 }
 
-void dataPackage(uint8_t ID, int capacity, char* data) {
+void dataPackage(uint8_t ID, int capacity, uint8_t data[]) {
 	data[0] = 0x0A;
 	data[7] = 0x0B;
 	data[1] = ID;
@@ -53,7 +46,7 @@ void dataPackage(uint8_t ID, int capacity, char* data) {
 	data[6] = check_sum;
 }
 
-void responsePackage(uint8_t ID, int type, char* data) {
+void responsePackage(uint8_t ID, int type, uint8_t data[]) {
 	data[0] = 0x0A;
 	data[7] = 0x0B;
 	data[1] = ID;
@@ -67,7 +60,7 @@ void responsePackage(uint8_t ID, int type, char* data) {
 	data[6] = check_sum;
 }
 
-int checkPackage(const char* logName, char* data) {
+int checkPackage(const char* logName, uint8_t data[]) {
 	if (data[0] != 0x0A || data[7] != 0x0B) {
 		ESP_LOGW(logName, "Data is invalid!");
 		return 0;
@@ -79,7 +72,7 @@ int checkPackage(const char* logName, char* data) {
 	return 1;
 }
 
-int getType(const char* logName, char *data) {
+int getType(const char* logName, uint8_t data[]) {
 	uint8_t command = data[2] >> 4;
 	if (command == 0x0A)
 		return HEARTBEAT;
@@ -91,7 +84,7 @@ int getType(const char* logName, char *data) {
 	return 0;
 }
 
-void getData(const char* logName, char *data, char* json) {
+void getData(const char* logName, uint8_t data[], char* json) {
 	if (checkPackage(logName, data) == 0) {
 		return;
 	}

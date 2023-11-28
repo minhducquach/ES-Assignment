@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "thingsboard.h"
+#include "aes.h"
 
 const char *MQTT_TAG = "MQTT_TCP";
 const char *UART_TAG = "UART_TASK";
@@ -31,11 +32,8 @@ esp_err_t client_event_post_handler(esp_http_client_event_handle_t evt)
 {
 	switch (evt->event_id) {
 		case HTTP_EVENT_ON_DATA:
-			vTaskDelay(3000/portTICK_PERIOD_MS);
-//			printf("HTTP_EVENT_ON_DATA: %.*s\n", evt->data_len, (char *)evt->data);
 			response = malloc(strlen((char *)evt->data)*sizeof(char));
 			sprintf(response, "%s", (char *)evt->data);
-//			printf("RESPONSE: %.*s\n", strlen(response), response);
 			break;
 		default:
 			break;
@@ -56,13 +54,17 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
     case MQTT_EVENT_CONNECTED:
     	int msg_id;
         ESP_LOGI(MQTT_TAG, "MQTT_EVENT_CONNECTED");
+        char* enc_msg = AES_encrypt((uint8_t*)data->json);
+        char* thingsboard_msg = malloc(strlen(enc_msg) + 20);
+        sprintf(thingsboard_msg, "{\"text\": \"%s\"}", enc_msg);
         if (type == HEARTBEAT){
-        	msg_id = esp_mqtt_client_publish(client, "v1/devices/me/attributes", data->json, 0, 1, 0);
+        	msg_id = esp_mqtt_client_publish(client, "v1/devices/me/attributes", thingsboard_msg, 0, 1, 0);
         }
         else {
-        	msg_id = esp_mqtt_client_publish(client, "v1/devices/me/telemetry", data->json, 0, 1, 0);
+        	msg_id = esp_mqtt_client_publish(client, "v1/devices/me/telemetry", thingsboard_msg, 0, 1, 0);
         }
-        ESP_LOGI(MQTT_TAG, "sent publish successful, msg_id=%d, data=%s", msg_id, data->json);
+        ESP_LOGI(MQTT_TAG, "sent publish successful, msg_id=%d, data=%s", msg_id, thingsboard_msg);
+        free(thingsboard_msg);
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(MQTT_TAG, "MQTT_EVENT_DISCONNECTED");

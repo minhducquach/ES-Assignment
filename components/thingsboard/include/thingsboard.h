@@ -7,7 +7,7 @@
 #include "data_package.h"
 
 struct params {
-	char data[8];
+	uint8_t data[8];
 	char json[100];
 };
 

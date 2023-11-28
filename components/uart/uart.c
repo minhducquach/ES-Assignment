@@ -9,7 +9,7 @@ static const int RX_BUF_SIZE = RX_BUFFER;
 
 void uart_config(void) {
 	const uart_config_t uart_config = {
-		.baud_rate = 115200,
+		.baud_rate = 9600,
 		.data_bits = UART_DATA_8_BITS,
 		.parity = UART_PARITY_DISABLE,
 		.stop_bits = UART_STOP_BITS_1,
@@ -25,14 +25,14 @@ void uart_config(void) {
 	uart_set_pin(UART2, UART2_TXD_PIN, UART2_RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 }
 
-int sendData_UART1(const char* logName, char* data) {
-	const int len = strlen(data);
+int sendData_UART1(const char* logName, uint8_t data[]) {
+	const int len = strlen((char*) data);
 	const int txBytes = uart_write_bytes(UART1, data, len);
 	ESP_LOGI(logName, "Send data to UART");
 	return txBytes;
 }
 
-void receiveData_UART1(const char* logName, char* data, int *flag) {
+void receiveData_UART1(const char* logName, uint8_t* data, int *flag) {
 	const int rxBytes = uart_read_bytes(UART1, data, RX_BUF_SIZE, 1000 / portTICK_PERIOD_MS);
 	if (rxBytes > 0) {
 		*flag = 1;
@@ -43,14 +43,14 @@ void receiveData_UART1(const char* logName, char* data, int *flag) {
 	else *flag = 0;
 }
 
-int sendData_UART2(const char* logName, char* data) {
-	const int len = strlen(data);
+int sendData_UART2(const char* logName, uint8_t data[]) {
+	const int len = strlen((char*) data);
 	const int txBytes = uart_write_bytes(UART2, data, len);
 	ESP_LOGI(logName, "Send data to UART");
 	return txBytes;
 }
 
-void receiveData_UART2(const char* logName, char* data, int *flag) {
+void receiveData_UART2(const char* logName, uint8_t* data, int *flag) {
 	const int rxBytes = uart_read_bytes(UART2, data, RX_BUF_SIZE, 1000 / portTICK_PERIOD_MS);
 	if (rxBytes > 0) {
 		*flag = 1;
