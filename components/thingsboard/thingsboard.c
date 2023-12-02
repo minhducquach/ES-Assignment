@@ -9,7 +9,7 @@
 const char *MQTT_TAG = "MQTT_TCP";
 const char *UART_TAG = "UART_TASK";
 
-esp_mqtt_client_handle_t mqtt_client[2];
+esp_mqtt_client_handle_t mqtt_client;
 
 char* response;
 
@@ -44,6 +44,7 @@ esp_err_t client_event_post_handler(esp_http_client_event_handle_t evt)
 void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
 	struct params* data = (struct params*) handler_args;
+	printf("AKA\n");
 	getData(UART_TAG, data->data, data->json);
 	int type = getType(UART_TAG, data->data);
 //	ESP_LOGD(MQTT_TAG, "Event dispatched from event loop base=%s, event_id=%d", base, event_id);
@@ -55,6 +56,7 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
     	int msg_id;
         ESP_LOGI(MQTT_TAG, "MQTT_EVENT_CONNECTED");
         char* enc_msg = AES_encrypt((uint8_t*)data->json);
+        printf("Json: %s\n", data->json);
         char* thingsboard_msg = malloc(strlen(enc_msg) + 20);
         sprintf(thingsboard_msg, "{\"text\": \"%s\"}", enc_msg);
         if (type == HEARTBEAT){
@@ -101,6 +103,7 @@ void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event
 
 void mqtt_app_start(int binID)
 {
+	printf("APP START\n");
 	char* broker_add = malloc(22);
 	sprintf(broker_add, "mqtt://%s", IP_ADDRESS);
 	char* binName = (char*) malloc(8);
@@ -135,8 +138,10 @@ void mqtt_app_start(int binID)
         abort();
     }
 #endif /* CONFIG_BROKER_URL_FROM_STDIN */
-    mqtt_client[binID-1] = esp_mqtt_client_init(&mqtt_cfg);
-    esp_mqtt_client_start(mqtt_client[binID-1]);
+    printf("SHALALALA\n");
+    mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
+    esp_mqtt_client_start(mqtt_client);
+    printf("END\n");
 }
 
 void create_thingsboard_device(int id)
@@ -154,7 +159,10 @@ void create_thingsboard_device(int id)
     esp_http_client_handle_t client = esp_http_client_init(&config_post);
 
     char  *post_data = (char*) malloc(400);
-    sprintf(post_data, "{\"device\":{\"name\":\"BIN_00%d\",\"label\":\"\",\"deviceProfileId\":{\"entityType\":\"DEVICE_PROFILE\",\"id\":\"fbd5d1e0-881c-11ee-a89d-070a45cea09a\"},\"additionalInfo\":{\"gateway\":false,\"overwriteActivityTime\":false,\"description\":\"\"},\"customerId\":null},\"credentials\":{\"credentialsType\":\"ACCESS_TOKEN\",\"credentialsId\":\"bin_00%d\",\"credentialsValue\":null}}", id, id);
+    sprintf(post_data, "{\"device\":{\"name\":\"BIN_00%d\",\"label\":\"\",\"deviceProfileId\":{\"entityType\":\"DEVICE_PROFILE\","
+    		"\"id\":\"fbd5d1e0-881c-11ee-a89d-070a45cea09a\"},\"additionalInfo\":{\"gateway\":false,\"overwriteActivityTime"
+    		"\":false,\"description\":\"\"},\"customerId\":null},\"credentials\":{\"credentialsType\":\"ACCESS_TOKEN\","
+    		"\"credentialsId\":\"bin_00%d\",\"credentialsValue\":null}}", id, id);
     esp_http_client_set_post_field(client, post_data, strlen(post_data));
     esp_http_client_set_header(client, "Content-Type", "application/json");
     esp_http_client_set_header(client, "X-Authorization", AUTH_TOKEN);
@@ -176,18 +184,12 @@ void thingsboard_login()
     };
 
     esp_http_client_handle_t client = esp_http_client_init(&config_post);
-
-
     char  *post_data = malloc(80);
     sprintf(post_data, "{\"username\":\"%s\",\"password\":\"%s\"}", USERNAME, PASSWORD);
     esp_http_client_set_post_field(client, post_data, strlen(post_data));
     esp_http_client_set_header(client, "Content-Type", "application/json");
-//    esp_http_client_set_header(client, "X-Authorization", "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJkdWNxdWFjaEBjaGlja2RldnMuY29tIiwidXNlcklkIjoiN2MyNTQzMzAtODgxZC0xMWVlLWE4OWQtMDcwYTQ1Y2VhMDlhIiwic2NvcGVzIjpbIlRFTkFOVF9BRE1JTiJdLCJzZXNzaW9uSWQiOiIyOTdiYzUzMS0yNzEzLTRjMTUtOGNkYy05Y2MyOGEwODk3NzUiLCJpc3MiOiJ0aGluZ3Nib2FyZC5pbyIsImlhdCI6MTcwMDgxMjI0NywiZXhwIjoxNzAwODIxMjQ3LCJmaXJzdE5hbWUiOiJEdWMiLCJsYXN0TmFtZSI6IlF1YWNoIE1pbmgiLCJlbmFibGVkIjp0cnVlLCJpc1B1YmxpYyI6ZmFsc2UsInRlbmFudElkIjoiZmJkNGU3ODAtODgxYy0xMWVlLWE4OWQtMDcwYTQ1Y2VhMDlhIiwiY3VzdG9tZXJJZCI6IjEzODE0MDAwLTFkZDItMTFiMi04MDgwLTgwODA4MDgwODA4MCJ9.3afg-RTMAMFunqDIdLimwP8GLCToqj-TDvv2UWzMZmWTc6qYdyA0mYovei6yeAu8P97sy5kevwIWqaEWzxOeJw");
-
     esp_http_client_perform(client);
 //    printf("RESPONSE: %.*s\n", strlen(response), response);
     remove_newlines(response);
-//    printf("RESPONSE_TMP: %.*s\n", strlen(response), response);
-//    printf("%.*s", 10, response + 628);
     esp_http_client_cleanup(client);
 }

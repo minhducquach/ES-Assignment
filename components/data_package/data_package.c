@@ -85,19 +85,27 @@ int getType(const char* logName, uint8_t data[]) {
 }
 
 void getData(const char* logName, uint8_t data[], char* json) {
+	printf("\n");
+	for(int i=0; i<8; i++) {
+		printf("%02X ", data[i]);
+	}
+	printf("\n");
 	if (checkPackage(logName, data) == 0) {
 		return;
 	}
 	int package = getType(logName, data);
+	printf("\n type: %d\n", package);
 	if (package == HEARTBEAT) {
 		int status = data[2] & 0x0f;
 		int floor = (data[3] & 0xf0) >> 4;
 		int trash = data[3] & 0x0f;
 		int signal = ((data[4] & 0xf0) >> 4) * 10 + (data[4] & 0x0f);
+		printf("{status: %d, floor: %d, trash_id: %d, signal: %d}\n", status, floor, trash, signal);
 		sprintf(json, "{status: %d, floor: %d, trash_id: %d, signal: %d}", status, floor, trash, signal);
 	}
 	else if (package == DATA) {
 		int capacity = ((data[3] & 0xf0) >> 4) * 10 + (data[3] & 0x0f);
+		printf("{capacity: %d}\n", capacity);
 		sprintf(json, "{capacity: %d}", capacity);
 	}
 	else if (package == RESPONSE) {

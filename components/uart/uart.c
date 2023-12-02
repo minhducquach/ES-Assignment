@@ -16,9 +16,6 @@ void uart_config(void) {
 		.flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
 		.source_clk = UART_SCLK_DEFAULT,
 	};
-	uart_driver_install(UART1, RX_BUF_SIZE * 2, 0, 0, NULL, 0);
-	uart_param_config(UART1, &uart_config);
-	uart_set_pin(UART1, UART1_TXD_PIN, UART1_RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
 	uart_driver_install(UART2, RX_BUF_SIZE * 2, 0, 0, NULL, 0);
 	uart_param_config(UART2, &uart_config);
@@ -44,7 +41,7 @@ void receiveData_UART1(const char* logName, uint8_t* data, int *flag) {
 }
 
 int sendData_UART2(const char* logName, uint8_t data[]) {
-	const int len = strlen((char*) data);
+	const int len = 8;
 	const int txBytes = uart_write_bytes(UART2, data, len);
 	ESP_LOGI(logName, "Send data to UART");
 	return txBytes;
@@ -55,8 +52,6 @@ void receiveData_UART2(const char* logName, uint8_t* data, int *flag) {
 	if (rxBytes > 0) {
 		*flag = 1;
 		data[rxBytes] = 0;
-		ESP_LOGI(logName, "Read %d bytes: '%s'", rxBytes, data);
-		ESP_LOG_BUFFER_HEXDUMP(logName, data, rxBytes, ESP_LOG_INFO);
 	}
 	else *flag = 0;
 }

@@ -5,7 +5,7 @@
 #define UART1 UART_NUM_1
 #define UART2 UART_NUM_2
 
-#define RX_BUFFER 8
+#define RX_BUFFER 1024
 
 void uart_config(void);
 int sendData_UART1(const char* logName, uint8_t data[]);

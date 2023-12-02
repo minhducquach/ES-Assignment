@@ -48,11 +48,12 @@ static EventGroupHandle_t s_wifi_event_group;
 
 static const char *WIFI_TAG = "wifi station";
 extern const char *UART_TAG;
+extern const char *MQTT_TAG;
 
 static int s_retry_num = 0;
-extern esp_mqtt_client_handle_t mqtt_client[2];
+extern esp_mqtt_client_handle_t mqtt_client;
 
-int trackMQTT[2] = {0, 0};
+int trackMQTT = 0;
 
 TaskHandle_t taskHandler1 = NULL;
 TaskHandle_t taskHandler2 = NULL;
@@ -140,42 +141,51 @@ esp_err_t wifi_init_sta(void)
     }
 }
 
-void handleUART1(struct params* taskParams){
-	while (1){
-		int flag = 0;
-		receiveData_UART1(UART_TAG, taskParams->data, &flag);
-//		flag = 1;
-		if (flag == 1){
-			uint8_t id = (uint8_t) taskParams->data[1];
-			if (!trackMQTT[0]){
-				create_thingsboard_device(id);
-				trackMQTT[0] = 1;
-				mqtt_app_start(id);
-			}
-			esp_mqtt_client_register_event(mqtt_client[0], ESP_EVENT_ANY_ID, mqtt_event_handler, (void*) taskParams);
-			uint8_t* response = (uint8_t*) malloc(8);
-			responsePackage(id, getType(UART_TAG, taskParams->data), response);
-			sendData_UART1(UART_TAG, response);
-		}
-	}
-}
+//void handleUART1(struct params* taskParams){
+//	while (1){
+//		int flag = 0;
+//		receiveData_UART1(UART_TAG, taskParams->data, &flag);
+////		flag = 1;
+//		if (flag == 1){
+//			uint8_t id = (uint8_t) taskParams->data[1];
+//			if (!trackMQTT[0]){
+//				create_thingsboard_device(id);
+//				trackMQTT[0] = 1;
+//				mqtt_app_start(id);
+//			}
+//			esp_mqtt_client_register_event(mqtt_client[0], ESP_EVENT_ANY_ID, mqtt_event_handler, (void*) taskParams);
+//			uint8_t* response = (uint8_t*) malloc(8);
+//			responsePackage(id, getType(UART_TAG, taskParams->data), response);
+//			sendData_UART1(UART_TAG, response);
+//		}
+//	}
+//}
 
 void handleUART2(struct params* taskParams){
+	// Config UART pins
+	uart_config();
+	// Data-received flag
+	int flag = 0;
 	while (1){
-		int flag = 0;
+		// 1. Receive Data from UART
 		receiveData_UART2(UART_TAG, taskParams->data, &flag);
-//		flag = 1;
 		if (flag == 1){
 			uint8_t id = (uint8_t) taskParams->data[1];
-			if (!trackMQTT[1]){
+			if (!trackMQTT){
 				create_thingsboard_device(id);
 				mqtt_app_start(id);
-				trackMQTT[1] = 1;
+				trackMQTT = 1;
 			}
-			esp_mqtt_client_register_event(mqtt_client[1], ESP_EVENT_ANY_ID, mqtt_event_handler, (void*) taskParams);
-			uint8_t* response = (uint8_t*) malloc(8);
-			responsePackage(id, getType(UART_TAG, taskParams->data), response);
-			sendData_UART2(UART_TAG, response);
+			int msg_id;
+			getData(UART_TAG, taskParams->data, taskParams->json);
+			ESP_LOGI(MQTT_TAG, "MQTT_EVENT_CONNECTED");
+			char* enc_msg = AES_encrypt((uint8_t*)taskParams->json);
+			printf("Json: %s\n", taskParams->json);
+			char* thingsboard_msg = malloc(strlen(enc_msg) + 20);
+			sprintf(thingsboard_msg, "{\"text\": \"%s\"}", enc_msg);
+			msg_id = esp_mqtt_client_publish(mqtt_client, "v1/devices/me/telemetry", thingsboard_msg, 0, 1, 0);
+			ESP_LOGI(MQTT_TAG, "sent publish successful, msg_id=%d, data=%s", msg_id, thingsboard_msg);
+			free(thingsboard_msg);
 		}
 	}
 }
